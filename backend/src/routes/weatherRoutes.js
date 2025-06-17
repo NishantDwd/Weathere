@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 
-const OPENWEATHER_API_KEY = '1b2f11b9145f7ecb7504f37c7fd0b35d';
+const OPENWEATHER_API_KEY = process.env.OPENWEATHER_KEY;
 
 // GET /api/weather/all?city=CityName&units=metric|imperial
 router.get('/all', async (req, res) => {
