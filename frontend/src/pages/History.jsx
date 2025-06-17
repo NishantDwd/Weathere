@@ -1,26 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { X, History as HistoryIcon, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
-
-// Dummy data for demonstration; replace with backend fetch if needed
-const initialHistory = [
-  { id: 1, city: "London" },
-  { id: 2, city: "New York" },
-  { id: 3, city: "Tokyo" },
-  { id: 4, city: "Paris" },
-  { id: 5, city: "Delhi" },
-  { id: 6, city: "Sydney" },
-  { id: 7, city: "Berlin" },
-  { id: 8, city: "Moscow" },
-  { id: 9, city: "Dubai" },
-  { id: 10, city: "Rome" },
-];
+import {
+  fetchHistory,
+  deleteHistory,
+  clearHistory,
+} from "@/lib/historyApi";
 
 export default function History() {
-  const [history, setHistory] = useState(initialHistory);
+  const [history, setHistory] = useState([]);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Fetch history from backend on mount
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    fetchHistory(token)
+      .then((data) => setHistory(data))
+      .catch(() => toast.error("Failed to fetch history"))
+      .finally(() => setLoading(false));
+  }, []);
 
   // Click city to go to Home with that city
   const handleCityClick = (city) => {
@@ -28,27 +30,33 @@ export default function History() {
   };
 
   // Delete a single city from history
-  const handleDelete = (id) => {
-    setHistory((prev) => prev.filter((item) => item.id !== id));
-    toast.success("Removed from history!");
-    // TODO: Call backend to delete this entry
+  const handleDelete = async (id) => {
+    const token = localStorage.getItem("token");
+    try {
+      await deleteHistory(id, token);
+      setHistory((prev) => prev.filter((item) => item.id !== id));
+      toast.success("Removed from history!");
+    } catch {
+      toast.error("Failed to remove from history!");
+    }
   };
 
   // Clear all history with confirmation
-  const handleClearHistory = () => {
-    setConfirmClear(true);
+  const handleClearHistory = () => setConfirmClear(true);
+
+  const confirmClearHistory = async () => {
+    const token = localStorage.getItem("token");
+    try {
+      await clearHistory(token);
+      setHistory([]);
+      toast.success("History cleared!");
+    } catch {
+      toast.error("Failed to clear history!");
+    }
+    setConfirmClear(false);
   };
 
-  const confirmClearHistory = () => {
-    setHistory([]);
-    setConfirmClear(false);
-    toast.success("History cleared!");
-    // TODO: Call backend to clear all history
-  };
-
-  const cancelClearHistory = () => {
-    setConfirmClear(false);
-  };
+  const cancelClearHistory = () => setConfirmClear(false);
 
   return (
     <div className="max-w-2xl mx-auto mt-8">
@@ -93,11 +101,13 @@ export default function History() {
         </div>
       )}
 
-      {history.length === 0 ? (
+      {loading ? (
+        <div className="text-center text-zinc-500 text-lg mt-12">Loading...</div>
+      ) : history.length === 0 ? (
         <div className="text-center text-zinc-500 text-lg mt-12">No search history yet.</div>
       ) : (
         <div className="space-y-2">
-          {history.slice(0, 10).map((item) => (
+          {history.map((item) => (
             <div
               key={item.id}
               className="flex items-center justify-between bg-white/80 dark:bg-zinc-900/80 rounded-lg shadow p-4 border border-zinc-100 dark:border-zinc-800 hover:shadow-md transition"
@@ -113,6 +123,9 @@ export default function History() {
                 }}
               >
                 {item.city}
+                <span className="block text-xs text-zinc-400 mt-1">
+                  {item.searched_at && new Date(item.searched_at).toLocaleString()}
+                </span>
               </div>
               <button
                 className="ml-4 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition"

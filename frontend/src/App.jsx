@@ -9,11 +9,12 @@ import History from "@/pages/History";
 import ChangePassword from "@/pages/ChangePassword";
 import NotFound from "@/pages/NotFound";
 import Signup from "@/pages/Signup";
+import Login from "@/pages/Login";
+import ResetPassword from "@/pages/ResetPassword";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useState, useEffect } from "react";
 
 function App() {
-  // Dummy logout handler (replace with real logic)
   const [user, setUser] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("user")) || null;
@@ -34,17 +35,30 @@ function App() {
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
+  // Update user state after login/signup
+  const handleUserUpdate = (userObj) => {
+    setUser(userObj);
+    if (userObj) {
+      localStorage.setItem("user", JSON.stringify(userObj));
+    } else {
+      localStorage.removeItem("user");
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null);
+    window.location.href = "/login"; // force redirect to login
   };
 
   return (
     <Router>
       <Layout onLogout={handleLogout} user={user}>
         <Routes>
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/signup" element={<Signup onUserUpdate={handleUserUpdate} />} />
+          <Route path="/login" element={<Login onUserUpdate={handleUserUpdate} />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/"
             element={

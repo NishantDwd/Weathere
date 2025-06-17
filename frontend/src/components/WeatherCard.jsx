@@ -4,13 +4,15 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-function formatTime(unix, timezoneOffset = 0) {
-  if (!unix) return "-";
-  const date = new Date((unix + timezoneOffset) * 1000);
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+// Always use this function for local time
+function formatLocalTime(unixUtc, timezoneOffset) {
+  if (!unixUtc || typeof timezoneOffset !== "number") return "-";
+  // unixUtc and timezoneOffset are both in seconds
+  // This gives the correct local time for the city
+  return new Date((unixUtc + timezoneOffset) * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-export default function WeatherCard({ weather, onAddFavorite }) {
+export default function WeatherCard({ weather, forecast = [], onAddFavorite }) {
   const [isFavorite, setIsFavorite] = useState(false);
 
   const handleFavorite = async () => {
@@ -26,6 +28,13 @@ export default function WeatherCard({ weather, onAddFavorite }) {
       toast.error("Failed to add to favorites.");
     }
   };
+
+  // Use forecast[0] for today's min/max if available, else fallback to current
+  const minTemp = forecast[0]?.min_temp ?? weather.main?.temp_min;
+  const maxTemp = forecast[0]?.max_temp ?? weather.main?.temp_max;
+
+  // Ensure timezone is a number (OpenWeatherMap gives seconds offset)
+  const timezoneOffset = typeof weather.timezone === "number" ? weather.timezone : 0;
 
   if (!weather) return null;
   return (
@@ -44,8 +53,6 @@ export default function WeatherCard({ weather, onAddFavorite }) {
           fill={isFavorite ? "#facc15" : "none"}
         />
       </button>
-      {/* ...rest of your card... */}
-      {/* (no changes below this line) */}
       <div className="flex items-center gap-4">
         <CloudSun className="w-12 h-12 text-indigo-400 drop-shadow" />
         <div>
@@ -68,14 +75,14 @@ export default function WeatherCard({ weather, onAddFavorite }) {
         <div className="flex items-center gap-2">
           <ArrowDown className="w-5 h-5 text-blue-400" />
           <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-            Min: {weather.main?.temp_min}
+            Min: {minTemp}
             {weather.tempUnit}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <ArrowUp className="w-5 h-5 text-red-400" />
           <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-            Max: {weather.main?.temp_max}
+            Max: {maxTemp}
             {weather.tempUnit}
           </span>
         </div>
@@ -102,13 +109,13 @@ export default function WeatherCard({ weather, onAddFavorite }) {
         <div className="flex items-center gap-2">
           <Sunrise className="w-5 h-5 text-yellow-400" />
           <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-            Sunrise: {formatTime(weather.sys?.sunrise, weather.timezone)}
+            Sunrise: {formatLocalTime(weather.sys?.sunrise, timezoneOffset)}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <Sunset className="w-5 h-5 text-orange-500" />
           <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-            Sunset: {formatTime(weather.sys?.sunset, weather.timezone)}
+            Sunset: {formatLocalTime(weather.sys?.sunset, timezoneOffset)}
           </span>
         </div>
       </div>

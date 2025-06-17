@@ -5,13 +5,8 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { CloudSun } from "lucide-react";
 
-export default function Signup({ onUserUpdate }) {
-  const [form, setForm] = useState({
-    username: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+export default function Login({ onUserUpdate }) {
+  const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -24,53 +19,29 @@ export default function Signup({ onUserUpdate }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.username || !form.email || !form.password || !form.confirmPassword) {
-      toast.error("All fields are required");
-      return;
-    }
-    if (form.password !== form.confirmPassword) {
-      toast.error("Passwords do not match");
+    if (!form.email || !form.password) {
+      toast.error("Both fields are required");
       return;
     }
     setLoading(true);
     try {
-      // Signup request
-      const res = await fetch("/api/auth/signup", {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: form.username,
-          email: form.email,
-          password: form.password,
-        }),
+        body: JSON.stringify(form),
       });
       const data = await res.json();
-      if (res.ok) {
-        // Immediately log in after signup
-        const loginRes = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: form.email,
-            password: form.password,
-          }),
-        });
-        const loginData = await loginRes.json();
-        if (loginRes.ok && loginData.token) {
-          localStorage.setItem("token", loginData.token);
-          // Store user info for later use
-          localStorage.setItem("user", JSON.stringify(loginData.user));
-           if (onUserUpdate) onUserUpdate(loginData.user);
-          toast.success("Signup successful! Welcome.");
-          navigate("/");
-        } else {
-          toast.error(loginData.error || "Signup succeeded, but login failed.");
-        }
+      if (res.ok && data.token) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        if (onUserUpdate) onUserUpdate(data.user);
+        toast.success("Login successful! Welcome back.");
+        navigate("/");
       } else {
-        toast.error(data.error || "Signup failed");
+        toast.error(data.error || "Login failed");
       }
     } catch {
-      toast.error("Signup failed. Please try again.");
+      toast.error("Login failed. Please try again.");
     }
     setLoading(false);
   };
@@ -80,21 +51,9 @@ export default function Signup({ onUserUpdate }) {
       <div className="w-full max-w-md mx-auto bg-white/90 dark:bg-zinc-900/90 rounded-3xl shadow-2xl p-10 border border-indigo-100 dark:border-indigo-800 backdrop-blur-lg">
         <h2 className="text-3xl font-extrabold mb-6 text-center text-indigo-700 dark:text-indigo-300 tracking-tight drop-shadow flex items-center justify-center gap-2">
           <CloudSun className="w-8 h-8 text-yellow-400 drop-shadow" />
-          Sign Up for Weathere
+          Login to Weathere
         </h2>
         <form className="space-y-5" onSubmit={handleSubmit} autoComplete="off">
-          <div>
-            <label className="block mb-1 font-semibold text-zinc-700 dark:text-zinc-200">Username</label>
-            <Input
-              name="username"
-              value={form.username}
-              onChange={handleChange}
-              placeholder="Enter your username"
-              autoFocus
-              required
-              className="bg-white/80 dark:bg-zinc-800/80"
-            />
-          </div>
           <div>
             <label className="block mb-1 font-semibold text-zinc-700 dark:text-zinc-200">Email</label>
             <Input
@@ -120,19 +79,6 @@ export default function Signup({ onUserUpdate }) {
               className="bg-white/80 dark:bg-zinc-800/80"
             />
           </div>
-          <div>
-            <label className="block mb-1 font-semibold text-zinc-700 dark:text-zinc-200">Confirm Password</label>
-            <Input
-              name="confirmPassword"
-              type="password"
-              value={form.confirmPassword}
-              onChange={handleChange}
-              placeholder="Confirm password"
-              required
-              minLength={6}
-              className="bg-white/80 dark:bg-zinc-800/80"
-            />
-          </div>
           <button
             type="submit"
             className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-blue-500 text-white font-bold text-lg shadow-lg transition-all duration-300 relative overflow-hidden group hover:shadow-2xl hover:scale-105 focus:outline-none
@@ -142,17 +88,27 @@ export default function Signup({ onUserUpdate }) {
             style={{ cursor: loading ? "not-allowed" : "pointer" }}
           >
             <span className="relative z-10 group-hover:animate-pulse">
-              {loading ? "Signing up..." : "Sign Up"}
+              {loading ? "Logging in..." : "Login"}
             </span>
           </button>
         </form>
-        <div className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-300">
-          Already have an account?{" "}
-          <span
-            className="text-indigo-600 hover:underline cursor-pointer"
-            onClick={() => navigate("/login")}
-          >
-            Login
+        <div className="mt-6 flex flex-col gap-2 text-center text-sm text-zinc-600 dark:text-zinc-300">
+          <span>
+            Don't have an account?{" "}
+            <span
+              className="text-indigo-600 hover:underline cursor-pointer"
+              onClick={() => navigate("/signup")}
+            >
+              Create an account
+            </span>
+          </span>
+          <span>
+            <span
+              className="text-indigo-600 hover:underline cursor-pointer"
+              onClick={() => navigate("/reset-password")}
+            >
+              Forgot password?
+            </span>
           </span>
         </div>
       </div>

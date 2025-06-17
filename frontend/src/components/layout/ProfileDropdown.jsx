@@ -1,14 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { LogOut, Settings, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 export default function ProfileDropdown({ user, onLogout }) {
   const [open, setOpen] = useState(false);
   const ref = useRef();
   const navigate = useNavigate();
 
-  // Close dropdown on outside click
   useEffect(() => {
     function handleClick(e) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
@@ -39,16 +38,18 @@ export default function ProfileDropdown({ user, onLogout }) {
             <User className="w-6 h-6 text-blue-400" />
             <div>
               <div className="font-semibold">{user?.username || "User"}</div>
-              <div className="text-xs text-zinc-500 dark:text-zinc-400">{user?.email || ""}</div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400 break-all max-w-[160px]">{user?.email || ""}</div>
             </div>
           </div>
-          <Link
-            to="/change-password"
-            className="flex items-center gap-2 px-4 py-2 hover:bg-blue-50 dark:hover:bg-zinc-800 transition rounded-t-xl"
-            onClick={() => setOpen(false)}
+          <button
+            className="flex items-center gap-2 px-4 py-2 w-full text-left hover:bg-blue-50 dark:hover:bg-zinc-800 transition rounded-t-xl"
+            onClick={() => {
+              setOpen(false);
+              navigate("/change-password");
+            }}
           >
             <Settings className="w-4 h-4" /> Settings
-          </Link>
+          </button>
           <button
             className="flex items-center gap-2 px-4 py-2 w-full text-left hover:bg-blue-50 dark:hover:bg-zinc-800 transition rounded-b-xl text-red-500"
             onClick={() => {

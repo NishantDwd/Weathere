@@ -5,11 +5,11 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { CloudSun } from "lucide-react";
 
-export default function Signup({ onUserUpdate }) {
+export default function ResetPassword() {
   const [form, setForm] = useState({
     username: "",
     email: "",
-    password: "",
+    newPassword: "",
     confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
@@ -24,53 +24,30 @@ export default function Signup({ onUserUpdate }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.username || !form.email || !form.password || !form.confirmPassword) {
+    if (!form.username || !form.email || !form.newPassword || !form.confirmPassword) {
       toast.error("All fields are required");
       return;
     }
-    if (form.password !== form.confirmPassword) {
+    if (form.newPassword !== form.confirmPassword) {
       toast.error("Passwords do not match");
       return;
     }
     setLoading(true);
     try {
-      // Signup request
-      const res = await fetch("/api/auth/signup", {
+      const res = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: form.username,
-          email: form.email,
-          password: form.password,
-        }),
+        body: JSON.stringify(form),
       });
       const data = await res.json();
       if (res.ok) {
-        // Immediately log in after signup
-        const loginRes = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: form.email,
-            password: form.password,
-          }),
-        });
-        const loginData = await loginRes.json();
-        if (loginRes.ok && loginData.token) {
-          localStorage.setItem("token", loginData.token);
-          // Store user info for later use
-          localStorage.setItem("user", JSON.stringify(loginData.user));
-           if (onUserUpdate) onUserUpdate(loginData.user);
-          toast.success("Signup successful! Welcome.");
-          navigate("/");
-        } else {
-          toast.error(loginData.error || "Signup succeeded, but login failed.");
-        }
+        toast.success("Password reset successful! Please login.");
+        navigate("/login");
       } else {
-        toast.error(data.error || "Signup failed");
+        toast.error(data.error || (data.errors && data.errors[0]?.msg) || "Reset failed");
       }
     } catch {
-      toast.error("Signup failed. Please try again.");
+      toast.error("Reset failed. Please try again.");
     }
     setLoading(false);
   };
@@ -80,7 +57,7 @@ export default function Signup({ onUserUpdate }) {
       <div className="w-full max-w-md mx-auto bg-white/90 dark:bg-zinc-900/90 rounded-3xl shadow-2xl p-10 border border-indigo-100 dark:border-indigo-800 backdrop-blur-lg">
         <h2 className="text-3xl font-extrabold mb-6 text-center text-indigo-700 dark:text-indigo-300 tracking-tight drop-shadow flex items-center justify-center gap-2">
           <CloudSun className="w-8 h-8 text-yellow-400 drop-shadow" />
-          Sign Up for Weathere
+          Reset Password
         </h2>
         <form className="space-y-5" onSubmit={handleSubmit} autoComplete="off">
           <div>
@@ -108,13 +85,13 @@ export default function Signup({ onUserUpdate }) {
             />
           </div>
           <div>
-            <label className="block mb-1 font-semibold text-zinc-700 dark:text-zinc-200">Password</label>
+            <label className="block mb-1 font-semibold text-zinc-700 dark:text-zinc-200">New Password</label>
             <Input
-              name="password"
+              name="newPassword"
               type="password"
-              value={form.password}
+              value={form.newPassword}
               onChange={handleChange}
-              placeholder="Enter password"
+              placeholder="Enter new password"
               required
               minLength={6}
               className="bg-white/80 dark:bg-zinc-800/80"
@@ -127,7 +104,7 @@ export default function Signup({ onUserUpdate }) {
               type="password"
               value={form.confirmPassword}
               onChange={handleChange}
-              placeholder="Confirm password"
+              placeholder="Confirm new password"
               required
               minLength={6}
               className="bg-white/80 dark:bg-zinc-800/80"
@@ -142,12 +119,12 @@ export default function Signup({ onUserUpdate }) {
             style={{ cursor: loading ? "not-allowed" : "pointer" }}
           >
             <span className="relative z-10 group-hover:animate-pulse">
-              {loading ? "Signing up..." : "Sign Up"}
+              {loading ? "Resetting..." : "Reset Password"}
             </span>
           </button>
         </form>
         <div className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-300">
-          Already have an account?{" "}
+          Remembered your password?{" "}
           <span
             className="text-indigo-600 hover:underline cursor-pointer"
             onClick={() => navigate("/login")}

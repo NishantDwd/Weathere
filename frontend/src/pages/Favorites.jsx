@@ -4,16 +4,20 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 export default function Favorites() {
-  const { favorites, setFavorites } = useFavorites();
+  const { favorites, removeFavorite } = useFavorites();
   const navigate = useNavigate();
 
   const handleCityClick = (city) => {
     navigate("/", { state: { city } });
   };
 
-  const handleDelete = (city) => {
-    setFavorites(prev => prev.filter(fav => fav.name !== city));
-    toast.success("Removed from favorites!");
+  const handleDelete = async (city) => {
+    try {
+      await removeFavorite(city);
+      toast.success("Removed from favorites!");
+    } catch (err) {
+      toast.error(err.message || "Failed to remove favorite!");
+    }
   };
 
   if (favorites.length === 0) {

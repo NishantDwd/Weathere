@@ -95,3 +95,38 @@ exports.changePassword = async (req, res) => {
     res.status(500).json({ error: 'Failed to change password' });
   }
 };
+
+
+exports.changeUsername = async (req, res) => {
+  const userId = req.user.userId;
+  const { newUsername } = req.body;
+   console.log("Change username request:", { userId, newUsername });
+  if (!newUsername) {
+    return res.status(400).json({ error: 'New username is required' });
+  }
+  try {
+    // Check if username already exists
+    const [rows] = await pool.query('SELECT id FROM users WHERE username = ?', [newUsername]);
+    if (rows.length > 0) {
+      return res.status(400).json({ error: 'Username already taken' });
+    }
+    await pool.query('UPDATE users SET username = ? WHERE id = ?', [newUsername, userId]);
+    // Get updated user
+    const [userRows] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
+    const user = userRows[0];
+    // Issue new JWT token with updated username
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, username: user.username },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+    res.json({
+      message: 'Username updated successfully',
+      token,
+      user: { id: user.id, username: user.username, email: user.email }
+    });
+  } catch (err) {
+    console.error('Change username error:', err);
+    res.status(500).json({ error: 'Failed to change username' });
+  }
+};

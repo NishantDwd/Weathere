@@ -73,6 +73,24 @@ router.post(
   authController.changePassword
 );
 
+// ...existing code...
+router.post(
+  '/change-username',
+  authenticateToken,
+  [
+    body('newUsername').notEmpty().withMessage('New username is required'),
+  ],
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    next();
+  },
+  authController.changeUsername
+);
+
+
 router.get('/profile', authenticateToken, (req, res) => {
   res.json({ user: req.user });
 });

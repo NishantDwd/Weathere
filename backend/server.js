@@ -9,8 +9,12 @@ const historyRoutes = require('./src/routes/historyRoutes');
 const rateLimit = require('express-rate-limit');
 const pool = require('./src/utils/db_pool');
 const blogRoutes = require('./src/routes/blogRoutes');
+const geminiRoutes = require('./src/routes/geminiRoutes');
 
 const app = express();
+const helmet = require('helmet');
+app.use(helmet());
+
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -31,7 +35,7 @@ app.use(express.json());
 //Rate limiting middleware to avoid Api abuse
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // limit each IP to 100 requests per windowMs
+  max: 500, // limit each IP to 100 requests per windowMs
   message: { error: 'Too many requests, please try again later.' }
 });
 app.use('/api/', apiLimiter);
@@ -46,6 +50,8 @@ app.get('/api/dbtest', async (req, res) => {
   }
 });
 // API routes
+
+app.use('/api/gemini', geminiRoutes);
 app.use('/api/weather', weatherRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/favorites', favoriteRoutes);
