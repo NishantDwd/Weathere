@@ -15,7 +15,7 @@ const app = express();
 const helmet = require('helmet');
 app.use(helmet());
 
-
+app.set('trust proxy', 1); 
 const isProduction = process.env.NODE_ENV === 'production';
 
 const corsOptions = isProduction
