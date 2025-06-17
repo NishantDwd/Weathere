@@ -35,7 +35,7 @@ export default function Signup({ onUserUpdate }) {
     setLoading(true);
     try {
       // Signup request
-      const res = await fetch("/api/auth/signup", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -47,7 +47,7 @@ export default function Signup({ onUserUpdate }) {
       const data = await res.json();
       if (res.ok) {
         // Immediately log in after signup
-        const loginRes = await fetch("/api/auth/login", {
+        const loginRes = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

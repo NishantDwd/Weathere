@@ -1,5 +1,7 @@
+const API_URL = import.meta.env.VITE_API_URL;
+
 export async function fetchFavorites(token) {
-  const res = await fetch("/api/favorites/list", {
+  const res = await fetch(`${API_URL}/favorites/list`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -12,7 +14,7 @@ export async function fetchFavorites(token) {
 }
 
 export async function removeFavorite(city, token) {
-  const res = await fetch("/api/favorites/remove", {
+  const res = await fetch(`${API_URL}/favorites/remove`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",

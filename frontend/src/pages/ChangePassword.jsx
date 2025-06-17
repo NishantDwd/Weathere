@@ -26,7 +26,7 @@ export default function ChangePassword() {
   setUsernameLoading(true);
   try {
     const token = localStorage.getItem("token");
-    const res = await fetch("/api/auth/change-username", {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/change-username`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -66,7 +66,7 @@ export default function ChangePassword() {
     setPwLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("/api/auth/change-password", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/change-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

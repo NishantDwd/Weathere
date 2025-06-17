@@ -1,12 +1,14 @@
+const API_URL = import.meta.env.VITE_API_URL;
+
 export async function fetchBlogs() {
-  const res = await fetch("/api/blogs/list");
+  const res = await fetch(`${API_URL}/blogs/list`);
   if (!res.ok) throw new Error("Failed to fetch blogs");
   const data = await res.json();
   return data.blogs;
 }
 
 export async function postBlog({ title, content, token }) {
-  const res = await fetch("/api/blogs/add", {
+  const res = await fetch(`${API_URL}/blogs/add`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -27,7 +29,7 @@ export async function postBlog({ title, content, token }) {
 }
 
 export async function deleteBlog({ id, token }) {
-  const res = await fetch("/api/blogs/delete", {
+  const res = await fetch(`${API_URL}/blogs/delete`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",

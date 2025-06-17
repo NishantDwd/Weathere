@@ -3,6 +3,7 @@ import { fetchFavorites, removeFavorite as removeFavoriteApi } from "@/lib/favor
 import { fetchWeather } from "@/lib/weatherApi";
 
 const FavoritesContext = createContext();
+const API_URL = import.meta.env.VITE_API_URL;
 
 export function FavoritesProvider({ children }) {
   const [favorites, setFavorites] = useState([]);
@@ -37,7 +38,7 @@ export function FavoritesProvider({ children }) {
       throw new Error("Already in favorites");
     }
     const token = localStorage.getItem("token");
-    const res = await fetch("/api/favorites/add", {
+    const res = await fetch(`${API_URL}/favorites/add`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
