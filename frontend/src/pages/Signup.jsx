@@ -5,6 +5,8 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { CloudSun } from "lucide-react";
 
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
+
 export default function Signup({ onUserUpdate }) {
   const [form, setForm] = useState({
     username: "",
@@ -12,6 +14,7 @@ export default function Signup({ onUserUpdate }) {
     password: "",
     confirmPassword: "",
   });
+
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -35,7 +38,7 @@ export default function Signup({ onUserUpdate }) {
     setLoading(true);
     try {
       // Signup request
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/signup`, {
+      const res = await fetch(`${API_URL}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -47,7 +50,7 @@ export default function Signup({ onUserUpdate }) {
       const data = await res.json();
       if (res.ok) {
         // Immediately log in after signup
-        const loginRes = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
+        const loginRes = await fetch(`${API_URL}/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

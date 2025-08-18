@@ -7,7 +7,7 @@ const authRoutes = require('./src/routes/authRoutes');
 const favoriteRoutes = require('./src/routes/favoriteRoutes');
 const historyRoutes = require('./src/routes/historyRoutes');
 const rateLimit = require('express-rate-limit');
-const pool = require('./src/utils/db_pool');
+const { connectMongo, mongoose } = require('./src/utils/db_pool');
 const blogRoutes = require('./src/routes/blogRoutes');
 const geminiRoutes = require('./src/routes/geminiRoutes');
 
@@ -40,10 +40,12 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
+const PORT = process.env.PORT || 5000;
+
 app.get('/api/dbtest', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT 1');
-    res.json({ success: true, result: rows });
+    const state = mongoose.connection.readyState; // 0 disconnected, 1 connected, 2 connecting, 3 disconnecting
+    res.json({ success: true, mongoState: state });
   } catch (err) {
     console.error('DB Test error:', err);
     res.status(500).json({ success: false, error: err.message });
@@ -66,5 +68,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+(async function start() {
+  try {
+    await connectMongo(); // wait for mongo
+    app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+  } catch (err) {
+    console.error('Failed to start server due to DB connection error:', err);
+    process.exit(1);
+  }
+})();

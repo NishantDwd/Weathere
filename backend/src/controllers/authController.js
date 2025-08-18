@@ -1,132 +1,119 @@
+
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const pool = require('../utils/db_pool');
-const { createUser, findUserByEmail } = require('../models/userModel');
+const { createUser, findUserByEmail, findUserById, updatePassword, updateUsername, User } = require('../models/userModel');
 
-exports.signup = async (req, res) => {
-  const { username, email, password } = req.body;
+// Signup
+async function signup(req, res) {
   try {
-    const existingUser = await findUserByEmail(email);
-    if (existingUser) return res.status(400).json({ error: 'User already exists' });
+    const { username, email, password } = req.body;
+    if (!username || !email || !password) return res.status(400).json({ error: 'All fields are required' });
+
+    const existing = await findUserByEmail(email);
+    if (existing) return res.status(400).json({ error: 'Email already registered' });
 
     const userId = await createUser(username, email, password);
-    res.status(201).json({ message: 'User created', userId });
-  } catch (err) {
-   console.error('Signup error:', err); // Add this line for logging
-   res.status(500).json({ error: 'Signup failed', details: err.message });
-  }
-};
+    const token = jwt.sign({ userId, email, username }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-exports.login = async (req, res) => {
-  const { email, password } = req.body;
+    return res.json({ token, user: { id: userId, username, email } });
+  } catch (err) {
+    console.error('Signup error:', err);
+    return res.status(500).json({ error: 'Failed to signup' });
+  }
+}
+
+// Login
+async function login(req, res) {
   try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+
     const user = await findUserByEmail(email);
     if (!user) return res.status(400).json({ error: 'Invalid credentials' });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
 
-    const token = jwt.sign({ userId: user.id, email: user.email, username: user.username  }, process.env.JWT_SECRET, {
-      expiresIn: '1d',
-    });
-    res.json({token, user: { id: user.id, username: user.username, email: user.email } });
+    const token = jwt.sign({ userId: user._id.toString(), email: user.email, username: user.username }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    return res.json({ token, user: { id: user._id.toString(), username: user.username, email: user.email } });
   } catch (err) {
     console.error('Login error:', err);
-    res.status(500).json({ error: 'Login failed' });
+    return res.status(500).json({ error: 'Failed to login' });
   }
-};
+}
 
-exports.resetPassword = async (req, res) => {
-  const { username, email, newPassword, confirmPassword } = req.body;
-  if (!username || !email || !newPassword || !confirmPassword) {
-    return res.status(400).json({ error: 'All fields are required' });
-  }
-  if (newPassword !== confirmPassword) {
-    return res.status(400).json({ error: 'Passwords do not match' });
-  }
+// Reset password (by email + username)
+async function resetPassword(req, res) {
   try {
-    // Find user by username and email
-    const [rows] = await pool.query(
-      'SELECT * FROM users WHERE username = ? AND email = ?',
-      [username, email]
-    );
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'User not found with provided username and email' });
-    }
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await pool.query(
-      'UPDATE users SET password = ? WHERE username = ? AND email = ?',
-      [hashedPassword, username, email]
-    );
-    res.json({ message: 'Password updated successfully' });
+    const { username, email, newPassword, confirmPassword } = req.body;
+    if (!username || !email || !newPassword || !confirmPassword) return res.status(400).json({ error: 'All fields are required' });
+    if (newPassword !== confirmPassword) return res.status(400).json({ error: 'Passwords do not match' });
+
+    const user = await findUserByEmail(email);
+    if (!user || user.username !== username) return res.status(404).json({ error: 'User not found' });
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await updatePassword(user._id.toString(), hashed);
+    return res.json({ message: 'Password reset successfully' });
   } catch (err) {
     console.error('Reset password error:', err);
-    res.status(500).json({ error: 'Failed to reset password' });
+    return res.status(500).json({ error: 'Failed to reset password' });
   }
-};
+}
 
-exports.changePassword = async (req, res) => {
-  const userId = req.user.userId;
-  const { oldPassword, newPassword, confirmPassword } = req.body;
-  if (!oldPassword || !newPassword || !confirmPassword) {
-    return res.status(400).json({ error: 'All fields are required' });
-  }
-  if (newPassword !== confirmPassword) {
-    return res.status(400).json({ error: 'Passwords do not match' });
-  }
+// Change password (authenticated)
+async function changePassword(req, res) {
   try {
-    // Get user by ID
-    const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    const user = rows[0];
-    // Verify old password
+    const userId = req.user.userId;
+    const { oldPassword, newPassword, confirmPassword } = req.body;
+    if (!oldPassword || !newPassword || !confirmPassword) return res.status(400).json({ error: 'All fields are required' });
+    if (newPassword !== confirmPassword) return res.status(400).json({ error: 'Passwords do not match' });
+
+    const user = await findUserById(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
     const isMatch = await bcrypt.compare(oldPassword, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ error: 'Old password is incorrect' });
-    }
-    // Update to new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await pool.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, userId]);
-    res.json({ message: 'Password changed successfully' });
+    if (!isMatch) return res.status(400).json({ error: 'Old password is incorrect' });
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await updatePassword(userId, hashed);
+    return res.json({ message: 'Password changed successfully' });
   } catch (err) {
     console.error('Change password error:', err);
-    res.status(500).json({ error: 'Failed to change password' });
+    return res.status(500).json({ error: 'Failed to change password' });
   }
-};
+}
 
-
-exports.changeUsername = async (req, res) => {
-  const userId = req.user.userId;
-  const { newUsername } = req.body;
-   console.log("Change username request:", { userId, newUsername });
-  if (!newUsername) {
-    return res.status(400).json({ error: 'New username is required' });
-  }
+// Change username (authenticated)
+async function changeUsername(req, res) {
   try {
-    // Check if username already exists
-    const [rows] = await pool.query('SELECT id FROM users WHERE username = ?', [newUsername]);
-    if (rows.length > 0) {
-      return res.status(400).json({ error: 'Username already taken' });
-    }
-    await pool.query('UPDATE users SET username = ? WHERE id = ?', [newUsername, userId]);
-    // Get updated user
-    const [userRows] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
-    const user = userRows[0];
-    // Issue new JWT token with updated username
-    const token = jwt.sign(
-      { userId: user.id, email: user.email, username: user.username },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
-    res.json({
+    const userId = req.user.userId;
+    const { newUsername } = req.body;
+    if (!newUsername) return res.status(400).json({ error: 'New username is required' });
+
+    // ensure unique username
+    const existing = await User.findOne({ username: newUsername }).lean();
+    if (existing) return res.status(400).json({ error: 'Username already taken' });
+
+    await updateUsername(userId, newUsername);
+    const user = await findUserById(userId);
+
+    const token = jwt.sign({ userId: user._id.toString(), email: user.email, username: user.username }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    return res.json({
       message: 'Username updated successfully',
       token,
-      user: { id: user.id, username: user.username, email: user.email }
+      user: { id: user._id.toString(), username: user.username, email: user.email }
     });
   } catch (err) {
     console.error('Change username error:', err);
-    res.status(500).json({ error: 'Failed to change username' });
+    return res.status(500).json({ error: 'Failed to change username' });
   }
+}
+
+module.exports = {
+  signup,
+  login,
+  resetPassword,
+  changePassword,
+  changeUsername
 };

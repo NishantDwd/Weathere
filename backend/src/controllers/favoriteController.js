@@ -1,11 +1,16 @@
+
 const { addFavorite, getFavorites, removeFavorite } = require('../models/favoriteModel');
 
 exports.add = async (req, res) => {
   const userId = req.user.userId;
   const { city } = req.body;
   if (!city) return res.status(400).json({ error: 'City is required' });
+
   try {
-    await addFavorite(userId, city);
+    const id = await addFavorite(userId, city);
+    if (id === null) {
+      return res.status(400).json({ error: 'Already in favorites' });
+    }
     res.json({ message: 'Favorite added' });
   } catch (err) {
     console.error('Add favorite error:', err);
@@ -16,7 +21,7 @@ exports.add = async (req, res) => {
 exports.list = async (req, res) => {
   const userId = req.user.userId;
   try {
-    const favorites = await getFavorites(userId);
+    const favorites = await getFavorites(userId); // returns [{city}, ...]
     res.json({ favorites });
   } catch (err) {
     console.error('Get favorites error:', err);
@@ -28,8 +33,10 @@ exports.remove = async (req, res) => {
   const userId = req.user.userId;
   const { city } = req.body;
   if (!city) return res.status(400).json({ error: 'City is required' });
+
   try {
-    await removeFavorite(userId, city);
+    const deleted = await removeFavorite(userId, city);
+    if (!deleted) return res.status(404).json({ error: 'Favorite not found' });
     res.json({ message: 'Favorite removed' });
   } catch (err) {
     console.error('Remove favorite error:', err);
