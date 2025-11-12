@@ -8,7 +8,7 @@ Frontend is React + Vite + Tailwind + Recharts.
 
 ## Tech stack
 - Frontend: React, Vite, Tailwind CSS, Recharts   
-- Backend: Node.js, Express, Mongoose (MongoDB)  
+- Backend: Node.js, Express, Mongoose (MongoDB) / MySQL
 
 ## Key features
 - Signup / Login / Profile 
